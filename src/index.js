@@ -1,17 +1,89 @@
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import './index.css';
-import App from './App';
-import reportWebVitals from './reportWebVitals';
+import G6 from '@antv/g6';
 
-const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
-);
+fetch('https://mocki.io/v1/524216a9-722e-4ecf-a3f6-9e5a8523a69d')
+    .then((res) => res.json())
+    .then((data) => {
+        const container = document.getElementById('container');
+        const width = container.scrollWidth;
+        const height = container.scrollHeight || 500;
+        const graph = new G6.TreeGraph({
+            container: 'container',
+            width,
+            height,
+            linkCenter: true,
+            modes: {
+                default: [
+                    {
+                        type: 'collapse-expand',
+                        onChange: function onChange(item, collapsed) {
+                            const data = item.getModel();
+                            data.collapsed = collapsed;
+                            return true;
+                        },
+                    },
+                    'drag-canvas',
+                    'zoom-canvas',
+                ],
+            },
+            defaultNode: {
+                size: 26,
+                anchorPoints: [
+                    [0, 0.5],
+                    [1, 0.5],
+                ],
+            },
+            defaultEdge: {
+                type: 'cubic-vertical',
+            },
+            layout: {
+                type: 'compactBox',
+                direction: 'TB',
+                getId: function getId(d) {
+                    return d.id;
+                },
+                getHeight: function getHeight() {
+                    return 16;
+                },
+                getWidth: function getWidth() {
+                    return 16;
+                },
+                getVGap: function getVGap() {
+                    return 80;
+                },
+                getHGap: function getHGap() {
+                    return 20;
+                },
+            },
+        });
 
-// If you want to start measuring performance in your app, pass a function
-// to log results (for example: reportWebVitals(console.log))
-// or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
-reportWebVitals();
+        graph.node(function (node) {
+            let position = 'right';
+            let rotate = 0;
+            if (!node.children) {
+                position = 'bottom';
+                rotate = Math.PI / 2;
+            }
+            return {
+                label: node.id,
+                labelCfg: {
+                    position,
+                    offset: 5,
+                    style: {
+                        rotate,
+                        textAlign: 'start',
+                    },
+                },
+            };
+        });
+
+        graph.data(data);
+        graph.render();
+        graph.fitView();
+
+        if (typeof window !== 'undefined')
+            window.onresize = () => {
+                if (!graph || graph.get('destroyed')) return;
+                if (!container || !container.scrollWidth || !container.scrollHeight) return;
+                graph.changeSize(container.scrollWidth, container.scrollHeight);
+            };
+    });
